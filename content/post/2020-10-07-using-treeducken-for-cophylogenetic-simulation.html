@@ -1,0 +1,264 @@
+---
+title: Using treeducken for cophylogenetic simulation
+author: Wade Dismukes
+date: '2020-10-07'
+slug: using-treeducken-for-cophylogenetic-simulation
+categories: []
+tags:
+  - phylogenetics
+  - cophylogeny
+  - rstats
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="setting-up" class="section level2">
+<h2>Setting up</h2>
+<p>In this post, I will give a brief exploration of the features available for cophylogenetic simulation in my new R package: <code>treeducken</code>.
+First, you will need to install the package and then load it:</p>
+<pre class="r"><code># install.packages(&quot;treeducken&quot;)
+library(treeducken)</code></pre>
+<pre><code>## Loading required package: ape</code></pre>
+</div>
+<div id="set-parameters-and-simulate" class="section level2">
+<h2>Set parameters and simulate!</h2>
+<p>First I need to set some parameters.
+Currently, there is only a way to simulate to a pre-specified time.
+We need to set six parameters: host speciation and extinction rate, symbiont speciation and extinction rate, host expansion rate, and cospeciation rate.
+These rates are set relative to the time; for example setting the speciation to 0.1 translates to 1 speciation every 10 time units.
+To assist with determining these parameters, we provide functions that calculate the expected numbers of tips under the SSA.
+In this code chunk we draw some random parameters for our host and symbiont birth rates, and calculate their expected numbers of tips.
+We then use these randomly drawn parameters to simulate under the cophylogenetic process.
+Figure 3 shows the output of one such simulation.</p>
+<pre class="r"><code>set.seed(54)
+lambda_H &lt;- rexp(n=1)
+mu_H &lt;- lambda_H / 2
+lambda_C &lt;- rexp(n=1)
+time &lt;- 1.0
+
+lambda_S &lt;- rexp(n=1)
+mu_S &lt;- lambda_S / 2
+
+H_tips &lt;- treeducken::calculate_expected_leaves_sptree(lambda = lambda_H + lambda_C,
+                                                       mu = mu_H,
+                                                       t = time)
+
+S_tips &lt;- treeducken::calculate_expected_leaves_sptree(lambda = lambda_S + lambda_C,
+                                                       mu = mu_S,
+                                                       t = time)
+cophy_obj &lt;- treeducken::sim_cophylo_bdp(hbr = lambda_H, hdr = mu_H,
+                                         sbr = lambda_S, sdr = mu_S,
+                                         cosp_rate = lambda_C, host_exp_rate = 0.0,
+                                         time_to_sim = time, numbsim = 1)
+plot(cophy_obj[[1]], col = &quot;orange&quot;, lty = &quot;dotted&quot;)</code></pre>
+<p><img src="/post/2020-10-07-using-treeducken-for-cophylogenetic-simulation_files/figure-html/setting-params-1.png" width="672" /></p>
+</div>
+<div id="other-features" class="section level2">
+<h2>Other features</h2>
+<p>Cophylogenetic objects are output as an S3 object of class <code>cophy</code> with many S3 generic functions implemented including <code>summary</code>, <code>plot</code> (see above), <code>c()</code> and <code>print</code>.
+The structure of this class is largely based on the <code>cophylo</code> S3 object of PhyTools, and we modified code written for generic function definitions from the APE package.
+Here I’ve provided some examples of the generic functions, more are provided within the documentation.</p>
+<p>See <code>print()</code> below:</p>
+<pre class="r"><code>print(cophy_obj, details = TRUE)</code></pre>
+<pre><code>## 1 cophylogenetic set.
+## Cophylogenetic set 1 :
+##  Symbiont tree has  8  tips.
+##  Host tree has  11  tips.</code></pre>
+<pre class="r"><code>summary(cophy_obj[[1]])</code></pre>
+<pre><code>## Null tree set.
+## Set of host and symbiont tree: cophy_obj[[1]] 
+## 
+## 
+## Host tree:   Number of tips: 11 
+##   Number of nodes: 10 
+##   Branch lengths:
+##        Min.     1st Qu.      Median     3rd Qu.        Max. 
+## 0.005784829 0.068360370 0.188179409 0.438411131 0.933831013 
+##   Root edge: 0.03004373 
+##   First ten tip labels: H1 
+##                         X2
+##                         H3
+##                         H4
+##                         H5
+##                         H6
+##                         H7
+##                         H8
+##                         H9
+##                         H10
+##   No node labels.
+## 
+## 
+## Symb tree:   Number of tips: 8 
+##   Number of nodes: 7 
+##   Branch lengths:
+##        Min.     1st Qu.      Median     3rd Qu.        Max. 
+## 0.006135764 0.044184039 0.241735072 0.398700667 0.933831013 
+##   Root edge: 0.03004373 
+##   Tip labels: S1 
+##               X2
+##               S3
+##               S4
+##               S5
+##               S6
+##               S7
+##               X8
+##   No node labels.
+## 
+## 
+## Association Matrix
+##  There are  6  rows (i.e. extant symbionts.
+##  There are  10  cols (i.e. extant hosts.Event history summary: 
+## 
+##  Min.   : 1.000   1st Qu.: 2.000   Median : 5.000   Mean   : 6.459   3rd Qu.:11.000   Max.   :15.000   Min.   : 1.00   1st Qu.: 7.00   Median :11.00   Mean   :11.68   3rd Qu.:17.00   Max.   :21.00   Length:85          Class :character   Mode  :character   NA NA NA Min.   :0.0000   1st Qu.:0.3667   Median :0.7583   Mean   :0.6062   3rd Qu.:0.9255   Max.   :0.9494</code></pre>
+<p>Or <code>summary</code>:</p>
+<pre class="r"><code>summary(cophy_obj[[1]])</code></pre>
+<pre><code>## Null tree set.
+## Set of host and symbiont tree: cophy_obj[[1]] 
+## 
+## 
+## Host tree:   Number of tips: 11 
+##   Number of nodes: 10 
+##   Branch lengths:
+##        Min.     1st Qu.      Median     3rd Qu.        Max. 
+## 0.005784829 0.068360370 0.188179409 0.438411131 0.933831013 
+##   Root edge: 0.03004373 
+##   First ten tip labels: H1 
+##                         X2
+##                         H3
+##                         H4
+##                         H5
+##                         H6
+##                         H7
+##                         H8
+##                         H9
+##                         H10
+##   No node labels.
+## 
+## 
+## Symb tree:   Number of tips: 8 
+##   Number of nodes: 7 
+##   Branch lengths:
+##        Min.     1st Qu.      Median     3rd Qu.        Max. 
+## 0.006135764 0.044184039 0.241735072 0.398700667 0.933831013 
+##   Root edge: 0.03004373 
+##   Tip labels: S1 
+##               X2
+##               S3
+##               S4
+##               S5
+##               S6
+##               S7
+##               X8
+##   No node labels.
+## 
+## 
+## Association Matrix
+##  There are  6  rows (i.e. extant symbionts.
+##  There are  10  cols (i.e. extant hosts.Event history summary: 
+## 
+##  Min.   : 1.000   1st Qu.: 2.000   Median : 5.000   Mean   : 6.459   3rd Qu.:11.000   Max.   :15.000   Min.   : 1.00   1st Qu.: 7.00   Median :11.00   Mean   :11.68   3rd Qu.:17.00   Max.   :21.00   Length:85          Class :character   Mode  :character   NA NA NA Min.   :0.0000   1st Qu.:0.3667   Median :0.7583   Mean   :0.6062   3rd Qu.:0.9255   Max.   :0.9494</code></pre>
+<p>We can also calculate (a limited amount of) summary statistics for our treeset. There is a function to calculate some for all of the <code>cophy</code> objects in a list, or some are available separately (e.g. <code>parafit_test</code>):</p>
+<pre class="r"><code>df &lt;- treeducken::cophy_summary_stat(cophy_obj)</code></pre>
+<pre><code>## Calculating for replicate  1</code></pre>
+<pre class="r"><code>D &lt;- treeducken::parafit_stat(cophy_obj[[1]]$host_tree,
+                              cophy_obj[[1]]$symb_tree,
+                              cophy_obj[[1]]$association_mat)
+treeducken::parafit_test(cophy_obj[[1]]$host_tree,
+                              cophy_obj[[1]]$symb_tree,
+                              cophy_obj[[1]]$association_mat,
+                         D = D,
+                         reps = 99)</code></pre>
+<pre><code>## [1] 0.01</code></pre>
+<p>The event numbers such as “Cospeciations” and “Host_Speciations” here are only calculated if the <code>Event_DF</code> member of the <code>cophy</code> object is present.
+This will always be there if you simulate data using <code>sim_cophylo_bdp()</code>, but won’t be if you use the built-in functions to setup a cophylogenetic object. I provide an example of doing that with the classic Hafner and Page gopher-louse dataset below:</p>
+<pre class="r"><code>gopher_lice_map &lt;- read.table(system.file(&quot;extdata&quot;,
+                                          &quot;gopher_lice_mapping.txt&quot;,
+                                          package = &quot;treeducken&quot;),
+                              stringsAsFactors = FALSE, header = TRUE)
+
+gopher_lice_assoc_matrix &lt;- convert_assoc_table_to_matrix(gopher_lice_map)
+gopher_tree &lt;- ape::read.nexus(system.file(&quot;extdata&quot;,
+                                           &quot;gophers_bd.tre&quot;,
+                                           package = &quot;treeducken&quot;))
+lice_tree &lt;- ape::read.nexus(system.file(&quot;extdata&quot;,
+                                         &quot;lice_bd.tre&quot;,
+                                         package = &quot;treeducken&quot;))
+gopher_lice_cophylo &lt;- convert_to_cophy(hostTree = gopher_tree,
+                                          symbTree = lice_tree,
+                                          assocMat = gopher_lice_assoc_matrix)
+print(gopher_lice_cophylo)</code></pre>
+<pre><code>## 
+##  Host Tree:
+## 
+## 
+## Phylogenetic tree with 15 tips and 14 internal nodes.
+## 
+## Tip labels:
+##   Cratogeomys_castanops_L32685, Cratogeomys_merriami_L32688, Geomys_breviceps_L32683, Geomys_bursarius_L32693, Geomys_bursarius_L32694, Geomys_personatus_L32689, ...
+## 
+## Rooted; includes branch lengths.
+## 
+## 
+##  Symbiont Tree:
+## 
+## 
+## Phylogenetic tree with 17 tips and 16 internal nodes.
+## 
+## Tip labels:
+##   Geomydoecus_actuosi_L32665, Geomydoecus_chapini_L32667, Geomydoecus_cherriei_L32668, Geomydoecus_costaricensis_L32669, Geomydoecus_ewingi_L32671, Geomydoecus_expansus_L32670, ...
+## 
+## Rooted; includes branch lengths.
+## 
+##  Association Matrix: 
+## 
+## 
+##  There are  17  rows (i.e. extant symbionts).
+##  There are  15  cols (i.e. extant hosts).</code></pre>
+<pre class="r"><code>cophy_summary_stat(gopher_lice_cophylo)</code></pre>
+<pre><code>##   Cospeciations Host_Speciations Host_Extinctions Symbiont_Speciations
+## 1             0                0                0                    0
+##   Symbiont_Extinctions Parafit_Stat Parafit_P-value
+## 1                    0     2.720485            0.12</code></pre>
+<pre class="r"><code>plot(gopher_lice_cophylo,
+     fsize = 0.5,
+     show_tip_label = FALSE,
+     gap = 1,
+     col = &quot;purple&quot;,
+     lty = &quot;dashed&quot;)</code></pre>
+<p><img src="/post/2020-10-07-using-treeducken-for-cophylogenetic-simulation_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+<div id="using-treeducken-with-paco" class="section level2">
+<h2>Using <code>treeducken</code> with PACo</h2>
+<p>I can use the <code>treeducken</code> output with the <a href="https://cran.r-project.org/web/packages/paco/index.html"><code>paco</code> package</a>.
+If there are extinct tips in the host or symbiont tree these need to be pruned off prior to being used with the <code>paco</code> package.
+Pruning can be done with the <code>drop_extinct</code> function.</p>
+<pre class="r"><code>library(paco)
+host_tree_pruned &lt;- drop_extinct(cophy_obj[[1]]$host_tree)
+symb_tree_pruned &lt;- drop_extinct(cophy_obj[[1]]$symb_tree)
+A &lt;- association_mat(cophy_obj[[1]])
+host_dist &lt;- cophenetic(host_tree_pruned)
+symb_dist &lt;- cophenetic(symb_tree_pruned)
+links &lt;- t(A) # paco wants associations with rows as hosts 
+
+# we need to name rows and columns for paco
+rownames(links) &lt;- host_tree_pruned$tip.label
+colnames(links) &lt;- symb_tree_pruned$tip.label 
+D &lt;- paco::prepare_paco_data(H = host_dist, P = symb_dist, HP = links)
+D &lt;- paco::add_pcoord(D)
+D &lt;- paco::PACo(D, nperm=100, seed = 11, method=&quot;r0&quot;)
+print(D$gof)</code></pre>
+<pre><code>## $p
+## [1] 0
+## 
+## $ss
+## [1] 0.02307293
+## 
+## $n
+## [1] 100</code></pre>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Hutchinson, M. C., Cagua, E. F., Balbuena, J. A., Stouffer, D. B., &amp; Poisot, T. (2017). paco: implementing Procrustean Approach to Cophylogeny in R. Methods in Ecology and Evolution, 8(8), 932-940.</p>
+<p>Hafner, M. S., &amp; Page, R. D. (1995). Molecular phylogenies and host-parasite cospeciation: gophers and lice as a model system. Philosophical Transactions of the Royal Society of London. Series B: Biological Sciences, 349(1327), 77-83.</p>
+</div>
